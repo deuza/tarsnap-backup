@@ -2,7 +2,8 @@
 [![License: WTFPL](https://img.shields.io/badge/license-WTFPL_2.0-lightgrey.svg?style=plastic)](https://www.wtfpl.net/)
 
 ![shellcheck](https://img.shields.io/badge/shellcheck-clean-brightgreen?style=plastic)
-
+![GitHub release](https://img.shields.io/github/v/release/deuza/tarsnap-backup?label=release&style=plastic)
+![GitHub Release Date](https://img.shields.io/github/release-date/deuza/tarsnap-backup&style=plastic)
 [![GitHub last commit](https://img.shields.io/github/last-commit/deuza/tarsnap-backup?style=plastic)](https://github.com/deuza/tarsnap-backup/commits/main)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/t/deuza/tarsnap-backup?style=plastic)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/deuza/tarsnap-backup?style=plastic)
@@ -359,11 +360,11 @@ Tarsnap retire le `/` de tête des noms d'entrée, les chemins à extraire sont 
 
 ## License
 
+[![CC0](https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/cc-zero.svg)](https://creativecommons.org/publicdomain/zero/1.0/) [![WTFPL](http://www.wtfpl.net/wp-content/uploads/2012/12/wtfpl-badge-1.png)](http://www.wtfpl.net/)
+
 `CC0 1.0 Universal` -- Public Domain -- [LICENSE](LICENSE).
-[![CC0](https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/cc-zero.svg)](https://creativecommons.org/publicdomain/zero/1.0/)
 
 `WTFPL` -- Do What The Fuck You Want To Public License, version 2 -- [LICENSE-WTFPL](LICENSE-WTFPL).
-[![WTFPL](http://www.wtfpl.net/wp-content/uploads/2012/12/wtfpl-badge-1.png)](http://www.wtfpl.net/)
 
 
 <p align="center">With ❤️ by <a href="https://github.com/deuza">DeuZa</a></p>

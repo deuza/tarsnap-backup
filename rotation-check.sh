@@ -2,25 +2,22 @@
 #
 # rotation-check.sh
 #
-# Harnais de diagnostic pour tarsnap-backup.sh. Ne touche NI tarsnap, NI le
-# réseau, NI la moindre archive : il rejoue la seule logique de décision de
-# la rotation, à la ligne près.
+# Harnais de diagnostic pour tarsnap-backup.sh. Ne touche NI tarsnap, NI le réseau, NI la moindre archive : 
+# il rejoue la seule logique de décision de la rotation, à la ligne près.
 #
 # Deux modes :
 #
-#   simulation (par défaut)
-#       Génère un historique d'archives quotidiennes sur N jours et compte ce
-#       que chaque palier retiendrait. Indispensable quand la machine ne tourne
-#       que depuis quelques semaines : un --dry-run réel ne prouve rien tant
-#       que toutes les archives sont dans la fenêtre quotidienne.
+#   - simulation (par défaut)
+#       Génère un historique d'archives quotidiennes sur N jours et compte ce que chaque palier retiendrait.  
+#       Indispensable quand la machine ne tourne que depuis quelques semaines : 
+#       un --dry-run réel ne prouve rien tant que toutes les archives sont dans la fenêtre quotidienne.
 #
-#   rejeu (-l)
-#       Rejoue la décision sur une vraie liste d'archives, lue dans un fichier
-#       ou sur l'entrée standard :
+#   - rejeu (-l)
+#       Rejoue la décision sur une vraie liste d'archives, lue dans un fichier ou sur l'entrée standard :
 #           tarsnap --list-archives | ./rotation-check.sh -l -
 #
-# Les valeurs de rétention sont lues directement dans tarsnap-backup.sh : un
-# harnais qui valide autre chose que la configuration réelle ne valide rien.
+# Les valeurs de rétention sont lues directement dans tarsnap-backup.sh
+#
 # Les options permettent de comparer un scénario sans rien y toucher.
 
 set -euf
@@ -30,17 +27,16 @@ UNAME_BIN="/usr/bin/uname"
 SED_BIN="/usr/bin/sed"
 
 # --- Emplacement de tarsnap-backup.sh ---
-# Ordre de recherche : le chemin installé ci-dessous, puis, à défaut, un
-# tarsnap-backup.sh voisin dans le répertoire du harnais, ce qui couvre le cas
-# du dépôt fraîchement cloné. L'option -f court-circuite les deux.
+# Ordre de recherche : le chemin installé ci-dessous, puis, à défaut, un tarsnap-backup.sh voisin dans le répertoire du harnais, ce qui couvre le cas du dépôt fraîchement cloné. 
+# L'option -f court-circuite les deux.
+
 BACKUP_SCRIPT_INSTALLED="/usr/local/sbin/tarsnap-backup.sh"
 
 DAYS=1825         # horizon simulé, 5 ans
 LISTFILE=""       # non vide = mode rejeu
 BACKUP_SCRIPT=""  # non vide = chemin imposé par -f
 
-# Surcharges de ligne de commande. Vide = on garde la valeur lue dans le
-# script testé.
+# Surcharges de ligne de commande. Vide = on garde la valeur lue dans le script testé.
 OPT_DAILY=""
 OPT_WEEKLY=""
 OPT_MONTHLY=""
@@ -62,9 +58,8 @@ usage: ${0##*/} [-D jours] [-f script] [-d DAILY] [-w WEEKLY] [-m MONTHLY]
   -l fichier  rejeu sur une vraie liste d archives, "-" pour stdin
   -h          affiche cette aide
 
-Sans surcharge, les cinq valeurs de retention sont lues dans
-tarsnap-backup.sh. Recherche : $BACKUP_SCRIPT_INSTALLED, puis le
-repertoire de ce script.
+Sans surcharge, les cinq valeurs de retention sont lues dans tarsnap-backup.sh. 
+Recherche : $BACKUP_SCRIPT_INSTALLED, puis le repertoire de ce script.
 EOF
     exit "${1:-1}"
 }
@@ -109,11 +104,10 @@ fi
 
 # Lecture d'une valeur entière dans le script testé.
 #
-# On ne source PAS le fichier : cela déclencherait son analyse d'options, sa
-# prise de verrou, et au bout du compte une vraie sauvegarde. Un sed ancré
-# suffit. Il s'arrête au premier match et valide au passage que la valeur est
-# bien un entier. L'ancrage sur "^NOM=" écarte les homonymes tels que
-# DAILY_SEC, qui ne commencent pas par "DAILY=".
+# On ne source PAS le fichier : cela déclencherait son analyse d'options, sa prise de verrou, et au bout du compte une vraie sauvegarde. 
+# Un sed ancré suffit. Il s'arrête au premier match et valide au passage que la valeur est bien un entier. 
+# L'ancrage sur "^NOM=" écarte les homonymes tels que DAILY_SEC, qui ne commencent pas par "DAILY=".
+
 read_value() {
     _v=$("$SED_BIN" -n "/^$1=/{s/^$1=\([0-9][0-9]*\).*/\1/p;q;}" "$BACKUP_SCRIPT")
     [ -n "$_v" ] || die "valeur $1 introuvable ou non numérique dans $BACKUP_SCRIPT"

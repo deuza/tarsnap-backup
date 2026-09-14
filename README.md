@@ -1,21 +1,24 @@
 [![License: CC0](https://img.shields.io/badge/license-CC0_1.0-lightgrey.svg?style=plastic)](https://creativecommons.org/publicdomain/zero/1.0/)
 [![License: WTFPL](https://img.shields.io/badge/license-WTFPL_2.0-lightgrey.svg?style=plastic)](https://www.wtfpl.net/)
+![Hack The Planet](https://img.shields.io/badge/hack-the--planet-black?style=plastic\&logo=Debian\&logoColor=white)
+![Built With Love](https://img.shields.io/badge/built%20with-%E2%9D%A4%20by%20DeuZa-red?style=plastic)
 
 ![shellcheck](https://img.shields.io/badge/shellcheck-clean-brightgreen?style=plastic)
+
 ![GitHub release](https://img.shields.io/github/v/release/deuza/tarsnap-backup?label=release&style=plastic)
 ![GitHub Release Date](https://img.shields.io/github/release-date/deuza/tarsnap-backup&style=plastic)
 [![GitHub last commit](https://img.shields.io/github/last-commit/deuza/tarsnap-backup?style=plastic)](https://github.com/deuza/tarsnap-backup/commits/main)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/t/deuza/tarsnap-backup?style=plastic)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/deuza/tarsnap-backup?style=plastic)
 
-![Hack The Planet](https://img.shields.io/badge/hack-the--planet-black?style=plastic\&logo=gnu\&logoColor=white)
-![Built With Love](https://img.shields.io/badge/built%20with-%E2%9D%A4%20by%20DeuZa-red?style=plastic)
 
 # tarsnap-backup
 
 Sauvegarde [Tarsnap](https://www.tarsnap.com/), puis rotation grand-père / père / fils. Écrit pour Debian, en `sh` strictement POSIX, sans dépendance à `bash`.
 
 Un seul fichier, `tarsnap-backup.sh`, à poser dans un `cron` et à oublier. Il prépare ce qui doit l'être, crée une archive datée, puis purge les anciennes selon un schéma de rétention à trois paliers. Un second fichier, `rotation-check.sh`, sert à vérifier cette rétention sans rien toucher.
+
+Ce script à été testé et développé avec la version 1.0.4 de Tarsnap. 
 
 ## Sommaire
 
@@ -43,13 +46,15 @@ Un seul fichier, `tarsnap-backup.sh`, à poser dans un `cron` et à oublier. Il 
 3. Il appelle `postbackup`, le pendant du premier : nettoyage des dumps temporaires, notification, redémarrage d'un service.
 4. Il liste les archives existantes et supprime celles qui ne satisfont aucun des trois critères de rétention.
 
-L'ordre est délibéré : on crée **avant** de détruire. Si Tarsnap échoue, pour cause de réseau, de quota ou de clé, `set -e` interrompt le script et aucune archive n'est supprimée. Le pire cas possible est donc « les anciennes archives s'accumulent », jamais « j'ai purgé et je n'ai rien de neuf ».
+L'ordre est délibéré : on crée **avant** de détruire. Si Tarsnap échoue, pour cause de réseau, de quota ou de clé, `set -e` interrompt le script et aucune archive n'est supprimée.   
+Le pire cas possible est donc « les anciennes archives s'accumulent », mais jamais « j'ai purgé et je ne fais rien ».
 
 ## Le schéma de rétention
 
 ### Le principe
 
-Grand-père / père / fils est un schéma de rotation de bandes magnétiques, antérieur de plusieurs décennies aux sauvegardes en ligne. L'idée : plus une sauvegarde est ancienne, moins on a besoin de granularité. On conserve donc toutes les sauvegardes récentes, puis une par semaine, puis une par mois.
+Grand-père / père / fils est un schéma de rotation de bandes magnétiques, antérieur de plusieurs décennies aux sauvegardes en ligne.  
+L'idée : plus une sauvegarde est ancienne, moins on a besoin de granularité. On conserve donc toutes les sauvegardes récentes, puis une par semaine, puis une par mois.
 
 ### Les fenêtres sont cumulées
 
@@ -65,11 +70,17 @@ Les trois fenêtres **se succèdent** au lieu de se recouvrir. Chaque palier pre
 
 La couverture totale est donc `DAILY` jours **plus** `WEEKLY` semaines **plus** `MONTHLY` mois, soit un peu plus de quatre ans et demi avec les valeurs livrées.
 
-L'autre lecture possible, celle où les trois fenêtres seraient comptées depuis maintenant et non les unes à la suite des autres, n'a pas été retenue. Elle impose à l'utilisateur de respecter l'invariant `DAILY < WEEKLY × 7 < MONTHLY × 30`, faute de quoi un palier devient silencieusement inatteignable. Avec `DAILY=90` et `WEEKLY=12`, les 84 jours de la fenêtre hebdomadaire tiendraient entièrement dans les 90 jours de la fenêtre quotidienne, et le palier père ne conserverait jamais rien, sans le moindre message d'erreur. Les fenêtres cumulées rendent cet invariant structurel : il n'y a plus rien à vérifier.
+L'autre lecture possible, celle où les trois fenêtres seraient comptées depuis maintenant et non les unes à la suite des autres, n'a pas été retenue.   
+Elle impose à l'utilisateur de respecter l'invariant `DAILY < WEEKLY × 7 < MONTHLY × 30`, faute de quoi un palier devient silencieusement inatteignable. 
+
+Avec `DAILY=90` et `WEEKLY=12`, les 84 jours de la fenêtre hebdomadaire tiendraient entièrement dans les 90 jours de la fenêtre quotidienne, et le palier père ne conserverait jamais rien, sans le moindre message d'erreur. Les fenêtres cumulées rendent cet invariant structurel : il n'y a plus rien à vérifier.
 
 ### Une archive est conservée si elle satisfait au moins un critère
 
-Les trois tests sont indépendants et évalués dans l'ordre. Le premier qui répond « oui » l'emporte, mais aucun n'exclut les autres. Concrètement, une archive datée du 1er du mois est conservée par le palier mensuel même si elle se trouve encore dans la plage de dates du palier hebdomadaire et qu'elle n'est pas un lundi. C'est le comportement attendu : les paliers définissent des raisons de garder, pas des tranches exclusives.
+Les trois tests sont indépendants et évalués dans l'ordre. Le premier qui répond « oui » l'emporte, mais aucun n'exclut les autres.    
+Concrètement, une archive datée du 1er du mois est conservée par le palier mensuel même si elle se trouve encore dans la plage de dates du palier hebdomadaire et qu'elle n'est pas un lundi.    
+
+C'est le comportement attendu : les paliers définissent des raisons de garder, pas des tranches exclusives.
 
 ### Ce que ça donne concrètement
 
@@ -92,13 +103,18 @@ Tarsnap déduplique. Une archive qui n'apporte aucune donnée nouvelle ne coûte
 
 ## Prérequis
 
-Debian, ou toute autre distribution GNU/Linux qui en dérive. Le script est développé et tourne sous Debian Trixie. Il suppose `usrmerge`, donc les binaires de base sous `/usr/bin`, et il appelle `dpkg` et `apt` pour l'inventaire des paquets. Le shell, lui, est du `sh` strictement POSIX : aucune dépendance à `bash`, et tout passe sous le `dash` que Debian installe comme `/bin/sh`.
+Debian, ou toute autre distribution GNU/Linux qui en dérive. Le script est développé et tourne sous Debian Trixie et est utilisé par l'auteur au quotidien.   
+Il suppose `usrmerge`, donc les binaires de base sous `/usr/bin`, et il appelle `dpkg` et `apt` pour l'inventaire des paquets.  
+La syntaxe du shell, lui, est du `sh` strictement POSIX : aucune dépendance à `bash`, et tout passe sous le `dash` que Debian installe comme `/bin/sh` ainsi que `bash` et autre shells POSIX.
 
 Il vous faut, dans l'ordre :
 
 **Un compte Tarsnap et une clé** générée par `tarsnap-keygen`.
 
-**Le client tarsnap**, à compiler depuis [la page de téléchargement](https://www.tarsnap.com/download.html) : il n'existe pas de paquet officiel. Testé avec la 1.0.41. Les dépendances de compilation sous Trixie :
+**Le client tarsnap**, à récupérer depuis [la page de téléchargement](https://www.tarsnap.com/download.html). 
+Si vous êtes sur une autre architecture i386 ou amd64 vous ne pourrez pas utiliser les .deb, si comme moi vous êtes sur Rapsberryi `aarch64` il faudra passer par là : [La page de construction du .deb](https://www.tarsnap.com/pkg-deb.html#tarsnap-source-package)
+
+Les dépendances de compilation sous Trixie :
 
 ```sh
 apt install build-essential libssl-dev zlib1g-dev libbz2-dev libext2fs-dev pkgconf
@@ -116,7 +132,8 @@ dpkg-reconfigure locales
 
 ### Autres systèmes
 
-Le script n'est pas portable en l'état, et ne cherche pas à l'être. Sur une autre distribution GNU/Linux, l'inventaire `dpkg` et `apt` est à remplacer. Sur FreeBSD s'y ajoutent les chemins, `flock` qui devient `lockf`, et les appels à `date`, dont `-d` et `%-d` sont des extensions GNU. Un portage est envisagé, il n'est pas fait.
+Le script n'est pas portable en l'état. 
+Il devrait tourner sur une autre distribution GNU/Linux basée sur Debian, l'inventaire `dpkg` et `apt` est à remplacer. 
 
 ## Installation
 
@@ -130,9 +147,10 @@ chmod 0700 /usr/local/sbin/tarsnap-backup.sh
 
 Le script tourne sous root et lit la clé Tarsnap : 0700 et rien de plus.
 
-`rotation-check.sh` n'a pas besoin d'être installé, il se lance depuis le clone. Il ira chercher tout seul la configuration dans `/usr/local/sbin/tarsnap-backup.sh`.
+`rotation-check.sh` est un script additionnel, son usage est destiné à simuler votre configuration de tarsnap-backup.sh ou la rejouer avec vos données réelles.
+Il n'a pas besoin d'être installé dans /usr/local/sbin/ il ira chercher les valeurs dans les chemins attendus de `tarsnap-backup.sh`
 
-Éditez ensuite le bloc de configuration en tête de fichier, puis vérifiez la syntaxe et testez à blanc :
+Éditez ensuite le bloc de configuration en tête de fichier, puis vérifiez la syntaxe avec `--dry-run` pour empêcher toute création de snapshot :
 
 ```sh
 sh -n /usr/local/sbin/tarsnap-backup.sh
@@ -145,7 +163,7 @@ Une fois satisfait, dans la crontab de root :
 2 0 * * * /usr/local/sbin/tarsnap-backup.sh
 ```
 
-Sans `--verbose`, le script est silencieux en fonctionnement normal. Seules les erreurs et les avertissements partent sur la sortie d'erreur, donc dans le courriel de `cron`.
+Sans `--verbose`, le script est silencieux en fonctionnement normal. Seules les erreurs et les avertissements partent sur la sortie d'erreur, soit dans le courriel de `cron`.
 
 ## Configuration
 
@@ -155,22 +173,53 @@ Tout se règle dans le bloc en tête de fichier, entre `CONFIGURATION` et `FIN D
 
 `TARSNAP_BIN`, `DATE_BIN`, `UNAME_BIN`, `LOCALE_BIN`, `GREP_BIN`, `DPKG_BIN`, `APT_BIN`, `FLOCK_BIN`.
 
-Ils sont en absolu pour ne pas dépendre du `PATH` de l'appelant, que ce soit `cron`, `systemd` ou un `sudo` mal réglé. Les valeurs livrées sont celles de Debian avec `usrmerge`, donc tout sous `/usr/bin`. Le script vérifie au démarrage que chacun est exécutable et refuse de tourner sinon.
+Le chemin des binaires est écrits en dur pour ne pas dépendre du `PATH` de l'appelant, que ce soit `cron`, `systemd` ou un `sudo` mal réglé.   
+Les valeurs livrées sont celles de Debian avec `usrmerge`, donc tout sous `/usr/bin`. Le script vérifie au démarrage que chacun est exécutable et refuse de tourner sinon.
 
 ### Tarsnap
 
-`TARSNAP_KEY` : chemin de la clé. Laissez la variable vide pour vous en remettre au `keyfile` déclaré dans `tarsnap.conf`. Une seule clé suffit : côté Tarsnap, la permission de suppression implique celle de lecture, une clé en lecture seule séparée ne serait qu'un sous-ensemble strict.
+`TARSNAP_KEY` : chemin de la clé. Laissez la variable vide pour vous en remettre au `keyfile` déclaré dans `tarsnap.conf`. 
+Une seule clé suffit : côté Tarsnap, la permission de suppression implique celle de lecture, une clé en lecture seule séparée ne serait qu'un sous-ensemble strict.
 
-Le `cachedir`, lui, n'est pas passé en ligne de commande. Il est lu dans `tarsnap.conf`. Vérifiez qu'il y est bien déclaré.
+Le `cachedir`, lui, n'est pas passé en ligne de commande. Il est lu dans `tarsnap.conf`.
+
+Vous pouvez vérifier tout ça avec les commandes suivantes : 
+
+```
+root@foo:~/tarsnap-backup# tarsnap --dump-config
+Command-line:
+  tarsnap --dump-config
+Reading from config file: /root/.tarsnaprc
+Reading from config file: /root/.config/tarsnap/tarsnap.conf
+Reading from config file: /etc/tarsnap.conf
+  cachedir /usr/local/tarsnap-cache
+  keyfile /root/tarsnap.key
+  nodump
+  print-stats
+  checkpoint-bytes 1G
+root@foo:~/tarsnap-backup#
+```
+
+Vous pouvez également vérifier votre configuration de Tarsnap :
+
+```
+root@foo:~/tarsnap-backup# tarsnap --verify-config
+root@foo:~/tarsnap-backup# echo $?
+0
+root@foo:~/tarsnap-backup#
+```
 
 ### Contenu de la sauvegarde
 
-`BACKUP_DIRS` : répertoires à embarquer, séparés par des espaces.
+- `BACKUP_DIRS` : répertoires à embarquer, séparés par des espaces.    
+- `BACKUP_EXCLUDE` : motifs d'exclusion, séparés par des espaces. 
 
-`BACKUP_EXCLUDE` : motifs d'exclusion, séparés par des espaces. Deux formes sont acceptées :
+Deux formes sont acceptées :
 
-- un motif globbé, par exemple `*/tmp/*`, passé tel quel à Tarsnap ;
-- un chemin absolu, par exemple `/var/www/html/APOD`, donc ancré et sans effet de bord. Tarsnap retire le `/` de tête des noms d'entrée, le script fait la conversion et génère les deux motifs nécessaires, celui du répertoire et celui de son contenu.
+1. Un chemin absolu, par exemple `/var/www/html/APOD`, donc ancré et sans effet de bord. 
+2. Un motif globbé, par exemple `*/tmp/*`, passé tel quel à Tarsnap ;
+
+Tarsnap utilise la syntaxe de bsdtar, il retire le `/` de tête des noms d'entrée, le script fait la conversion et génère les deux motifs nécessaires, celui du répertoire et celui de son contenu.
 
 ### Rétention
 
@@ -192,7 +241,9 @@ Deux fonctions encadrent la création de l'archive. Elles se trouvent juste apr�
 
 ### `prebackup`
 
-Tout ce qui doit être préparé avant que Tarsnap ne lise les fichiers : inventaires, dumps de bases, export de configuration, appel à un script externe. Livrée avec l'inventaire des paquets, et une série d'exemples commentés à décommenter et à adapter.
+Tout ce qui doit être préparé avant que Tarsnap ne lise les fichiers : inventaires, dumps de bases, export de configuration, appel à un script externe. 
+
+Livrée avec l'inventaire des paquets, et une série d'exemples commentés à décommenter et à adapter :
 
 ```sh
 prebackup() {
@@ -208,17 +259,28 @@ prebackup() {
 }
 ```
 
-Déclarez le chemin absolu de vos binaires en tête de script, comme les autres, plutôt que de vous en remettre au `PATH`. Et pour MySQL, les identifiants vont dans un `~/.my.cnf` en 0600, jamais sur la ligne de commande où `ps` les rendrait visibles de tous les utilisateurs de la machine.
+Déclarez le chemin absolu de vos binaires en tête de script, comme les autres, plutôt que de vous en remettre au `PATH`.    
+Et pour MySQL, les identifiants vont dans un `~/.my.cnf` en 0600, jamais sur la ligne de commande où `ps` les rendrait visibles de tous les utilisateurs de la machine.
 
 ### `postbackup`
 
-Le pendant, exécuté une fois l'archive créée, snapshot compris, et avant la rotation. Nettoyage des dumps temporaires, notification, redémarrage d'un service arrêté par `prebackup`. Vide par défaut, avec ses exemples commentés.
+Le pendant, exécuté une fois l'archive créée, snapshot compris, et avant la rotation.    
+Nettoyage des dumps temporaires, notification, redémarrage d'un service arrêté par `prebackup`. Vide par défaut, avec ses exemples commentés.
 
 ### Les deux règles à retenir
 
-**La fonction doit rendre 0.** Toute autre valeur, et toute commande qui échoue à l'intérieur, arrête le script. Pour `prebackup` cela se produit **avant** la création de l'archive, donc avant la moindre suppression : mieux vaut ne rien sauvegarder que sauvegarder une base à moitié dumpée. Pour `postbackup`, l'archive est déjà en place et c'est la rotation qui est sautée, donc les anciennes archives s'accumulent. Dans les deux cas, le sens de panne est le bon.
+**La fonction doit rendre 0.** 
 
-**Les deux fonctions sont exécutées aussi en `--dry-run`.** C'est voulu : une simulation qui ne préparerait pas les mêmes fichiers ne simulerait pas grand-chose, puisque c'est exactement ce que Tarsnap est censé lire. Conséquence pratique à ne pas découvrir en production : si vous y placez un dump de plusieurs gigaoctets, commentez-le avant d'enchaîner les essais à blanc, sinon chaque `--dry-run` le rejoue en entier.
+Toute autre valeur, et toute commande qui échoue à l'intérieur, arrête le script :   
+- Pour `prebackup` cela se produit **avant** la création de l'archive, donc avant la moindre suppression : mieux vaut ne rien sauvegarder que sauvegarder une base à moitié dumpée.   
+- Pour `postbackup`, l'archive est déjà en place et c'est la rotation qui est sautée, donc les anciennes archives s'accumulent. 
+
+Dans les deux cas, le sens de panne est le bon.
+
+### Les deux fonctions sont exécutées aussi en `--dry-run` :
+
+C'est voulu : une simulation qui ne préparerait pas les mêmes fichiers ne simulerait pas grand-chose, puisque c'est exactement ce que Tarsnap est censé lire.   
+Conséquence pratique à ne pas découvrir en production : si vous y placez un dump de plusieurs gigaoctets, commentez-le avant d'enchaîner les essais à blanc, sinon chaque `--dry-run` le rejoue en entier.
 
 ## Utilisation
 
@@ -232,7 +294,9 @@ usage: tarsnap-backup.sh [-d|-n|--dry-run] [-v|--verbose] [-h|--help]
 
 `-v`, `--verbose` : détaille la décision prise pour chaque archive, et passe `-v` à Tarsnap.
 
-`-s NOM`, `--snapshot-name NOM` : crée une archive suffixée par `NOM`, puis sort sans faire de rotation. Le suffixe la fait sortir du motif testé par la purge, elle devient donc définitivement intouchable par le script. C'est ce qu'il faut utiliser avant une mise en production. Les caractères admis sont `A-Z`, `a-z`, `0-9`, `_` et `-`. La forme `--snapshot-name=NOM` est également acceptée.
+`-s NOM`, `--snapshot-name NOM` : crée une archive suffixée par `NOM`, puis sort sans faire de rotation.   
+Le suffixe la fait sortir du motif testé par la purge, elle devient donc définitivement intouchable par le script. C'est ce qu'il faut utiliser avant une mise en production par exemple.   
+Les caractères admis sont `A-Z`, `a-z`, `0-9`, `_` et `-`. La forme `--snapshot-name=NOM` est également acceptée.
 
 `-o`, `--orphans` : liste les archives hors de portée de la rotation, puis sort. Voir la section suivante.
 
@@ -240,36 +304,46 @@ usage: tarsnap-backup.sh [-d|-n|--dry-run] [-v|--verbose] [-h|--help]
 
 ## Les archives hors rotation
 
-La purge ne touche **que** ce qui respecte exactement le motif `hostname-AAAA-MM-JJ_HH-MM-SS`. Tout le reste lui est invisible, et le restera. C'est une garantie, mais c'est aussi une façon d'accumuler sans s'en rendre compte des archives que plus rien ne nettoie. D'où `--orphans`.
+Tout le reste lui est invisible, et le restera. C'est une garantie, mais c'est aussi une façon d'accumuler sans s'en rendre compte des archives orphelines que plus rien ne nettoie.
 
 ```sh
 tarsnap-backup.sh --orphans
 ```
 
-L'option est en lecture seule : elle ne crée rien, ne supprime rien, et ne pose même pas de verrou, le manuel de Tarsnap ne l'exigeant que pour la création et la suppression. Vous pouvez donc l'appeler pendant qu'une sauvegarde tourne.
+L'option est en lecture seule : elle ne crée rien, ne supprime rien, et ne pose même pas de verrou. *Vous pouvez donc l'appeler pendant qu'une sauvegarde tourne en tâche de fond.*
 
-Elle distingue deux familles, pour deux raisons différentes.
+Elle distingue deux familles, pour deux raisons différentes :
 
-**Les orphelines.** Leur nom ne correspond pas au motif, donc la purge ne les regarde même pas. On y trouve les snapshots créés avec `-s`, les archives faites à la main, celles d'une autre machine partageant la même clé, et celles qui datent d'un hostname précédent.
+**- Les snapshots orphelins :**   
+Leur nom ne correspond pas au motif des snapshots créés par `tarsnap-backup.sh`, donc la purge les exclus d'office.  
 
-**Les partielles.** Suffixées `.part`, ce sont les vestiges d'une exécution interrompue dont Tarsnap a récupéré un checkpoint. Elles comptent pour la déduplication et peuvent contenir des données qui ne sont nulle part ailleurs. Le script les signale déjà sur la sortie d'erreur à chaque rotation, donc dans le courriel de `cron` ; `--orphans` les regroupe pour que vous puissiez trancher à froid.
+On y trouve l'ensemble des snapshots créés avec la clef de Tarsnap, la purge ne touche **QUE** ce qui respecte EXACTEMENT le motif : **`hostname-AAAA-MM-JJ_HH-MM-SS`**   
 
-Pour chaque famille, la commande de suppression correspondante est affichée, prête à être relue puis collée. Elle n'est jamais exécutée :
+**- Les partielles :**   
+Suffixées `.part`, ce sont les vestiges d'une exécution interrompue dont Tarsnap a récupéré un checkpoint. 
+
+Elles sont prise en compte pour la déduplication et peuvent contenir des données qui ne sont nulle part ailleurs.  
+Le script les signale déjà sur la sortie d'erreur à chaque rotation, donc dans le courriel de `cron` ; `--orphans` les regroupe pour que vous puissiez trancher à froid.
+
+Pour chaque famille, la commande de suppression correspondante est affichée, prête à être relue puis collée. Elle n'est jamais exécutée par le script :
 
 ```
 --- Orphelines : nom hors motif, jamais purgees ---
-  www-2026-01-10_03-00-00_avant-prod
+  foo-2026-01-10_03-00-00_avant-prod
   vieux-backup-a-la-main
 
   Suppression, a relire avant de la coller :
-  /usr/bin/tarsnap --keyfile /root/tarsnap.key -d -f www-2026-01-10_03-00-00_avant-prod -f vieux-backup-a-la-main
+  /usr/bin/tarsnap --keyfile /root/tarsnap.key -d -f foo-2026-01-10_03-00-00_avant-prod -f vieux-backup-a-la-main
 ```
 
 ## Vérifier sa configuration de rétention
 
-`rotation-check.sh` rejoue la seule logique de décision de la rotation. Il ne touche ni à Tarsnap, ni au réseau, ni à la moindre archive.
+Le dépôt inclus le script `rotation-check.sh` qui rejoue la logique de décision de la rotation. Il ne touche ni à Tarsnap, ni au réseau, ni à la moindre archive.
 
-Il ne recopie pas les valeurs de rétention, il les **lit** dans `tarsnap-backup.sh`. Deux fichiers à garder en phase à la main, c'était un de trop, et un harnais qui valide autre chose que la configuration réelle ne valide rien. L'ordre de recherche est `/usr/local/sbin/tarsnap-backup.sh`, puis, à défaut, un `tarsnap-backup.sh` voisin dans le répertoire du harnais, ce qui couvre le cas du dépôt fraîchement cloné. L'option `-f` court-circuite les deux. Le fichier n'est jamais sourcé, seulement lu : le sourcer déclencherait son analyse d'options, son verrou et, au bout du compte, une vraie sauvegarde.
+Les valeurs de rétention, sont issus du fichier `tarsnap-backup.sh`. 
+
+L'ordre de recherche est `/usr/local/sbin/tarsnap-backup.sh`, puis, à défaut, un `tarsnap-backup.sh` présent dans le répertoire de travail, ce qui couvre le cas du dépôt fraîchement cloné.   
+L'option `-f` court-circuite les deux. Le fichier n'est jamais sourcé par le script, seulement lu : le sourcer déclencherait son analyse d'options, son verrou et, au bout du compte, une vraie sauvegarde.
 
 L'outil est indispensable sur une machine récente : tant que toutes vos archives tiennent dans la fenêtre quotidienne, un `--dry-run` réel affichera « rien à purger » et ne prouvera rigoureusement rien.
 
@@ -285,13 +359,13 @@ Comparer un autre réglage sans rien modifier :
 ./rotation-check.sh -d 30 -w 26 -m 60
 ```
 
-Rejouer la décision sur vos archives réelles :
+Rejouer la décision sur vos archives **réelles** :
 
 ```sh
 tarsnap --list-archives | ./rotation-check.sh -l -
 ```
 
-La sortie commence par rappeler d'où vient la configuration, puis affiche les trois plages :
+La sortie commence par afficher d'où vient la configuration, puis affiche les trois plages :
 
 ```
 configuration lue dans /usr/local/sbin/tarsnap-backup.sh
@@ -311,59 +385,85 @@ mensuel    MONTHLY=48 DOM=1            de   174 a  1635 j
 
 ## Choix techniques
 
-**`prebackup` est appelée nue, jamais dans une condition.** Ni `prebackup || die`, ni `if ! prebackup`. Placer une fonction dans une condition désactive `set -e` dans tout son corps : une commande qui échouerait au milieu serait ignorée, les suivantes s'exécuteraient quand même, et la fonction rendrait 0. Le comportement est identique sous `dash` et sous `bash`. Avec l'appel nu, `set -e` arrête le script sur la commande fautive, dont le message part dans le courriel de `cron`. C'est moins joli qu'un message d'erreur maison, c'est surtout beaucoup plus sûr.
+**Les fonctions `prebackup` et `postbackup` sont appelées nues, sans condition que les appels externes rendent correctement la main.** 
 
-**`--dry-run` et non `--dry-run-metadata`.** Cette dernière, ajoutée en Tarsnap 1.0.41, serait pourtant bien plus rapide : elle ne lit aucune donnée, là où `--dry-run` relit l'intégralité des fichiers et prend donc autant de temps qu'une sauvegarde réelle. Elle est écartée parce qu'elle échoue dès que le cache de chunks est peuplé.
+L'appel `set -e` en haut du script arrête le script sur la commande fautive, il ne poursuit pas la création du snapshot.
+Aucun message d'erreur maison, mais juste celui de la commande fautive, c'est beaucoup plus sûr car l'ensemble des erreurs sont ainsi catchées.
+
+Avant de rajouter une commande ou un script dans un de ces blocs assurez vous que son execution se déroule donc correctement en utilisant l'option `--dry-run` et en surveillant qu'aucun mail n'apparait dans le courriel de `cron`.
+
+--- 
+
+### Appel de l'option **`--dry-run` et non `--dry-run-metadata`** de Tarnsap :   
+
+Cette dernière, ajoutée en Tarsnap 1.0.41, serait pourtant bien plus rapide : elle ne lit aucune donnée, là où `--dry-run` relit l'intégralité des fichiers et prend donc autant de temps qu'une sauvegarde réelle.   
+Elle est écartée parce qu'elle échoue dès que le cache de chunks est peuplé.
 
 ```
 tarsnap: Programmer error: writetape_writechunk unexpectedly returned 0
 tarsnap: Error writing cached archive entry
 ```
 
-Reproduit en 1.0.41 sur chacun des quatre répertoires de `BACKUP_DIRS` pris isolément, avec un `cachedir` issu d'une vraie sauvegarde. Le même appel contre un `cachedir` fraîchement initialisé passe sans broncher, ce qui isole le cache comme seule variable. Ce n'est pas non plus une question de volume, `/boot` seul suffit. Et `print-stats` n'y est pour rien : l'échec se produit aussi avec `--no-print-stats`. À noter tout de même, un fichier isolé passé en argument ne suffit pas toujours à déclencher l'erreur, même présent dans le cache : il faut que celui-ci puisse fournir une entrée d'archive complète.
+Reproduit en 1.0.41 sur chacun des quatre répertoires de `BACKUP_DIRS` pris isolément, avec un `cachedir` issu d'une vraie sauvegarde.   
+Le même appel contre un `cachedir` fraîchement initialisé passe sans broncher, ce qui isole le cache comme seule variable. Ce n'est pas non plus une question de volume, `/boot` seul suffit.   
+
+Et `print-stats` n'y est pour rien :    
+L'échec se produit aussi avec `--no-print-stats`. À noter tout de même, un fichier isolé passé en argument ne suffit pas toujours à déclencher l'erreur, même présent dans le cache : il faut que celui-ci puisse fournir une entrée d'archive complète.
 
 La cause est visible dans le source de la 1.0.41. `multitape_write.c:429` pose `no_chunkifiers = (dryrun == 2)`, ce qui prive de chunkifier les flux initialisés lignes 517 à 521, alors que la couche chunks `d->C` est créée sans condition sur `dryrun` ligne 503. `writetape_ischunkpresent` répond donc « présent » là où `writetape_writechunk` rend 0, et `ccache_entry.c:409` traite ce 0 comme une erreur de programmation.
 
-Ne remettez pas l'option sans avoir vérifié que c'est corrigé en amont. La commande qui reproduit, en lecture seule et sur une copie du cache :
+Ne remettez pas l'option sans avoir vérifié que cela à été corrigé en amont. La commande qui reproduit, en lecture seule et sur une copie du cache :
 
 ```sh
 cp -a /usr/local/tarsnap-cache /root/ts-cache-test
 tarsnap --cachedir /root/ts-cache-test --dry-run-metadata --no-print-stats -c -f zz-test /boot
+echo $?
 ```
 
-**`--quiet --no-print-stats` en mode silencieux.** `--quiet` ne masque que quelques avertissements. C'est `--no-print-stats` qui neutralise la directive `print-stats` de `tarsnap.conf`, responsable du tableau « All archives / This archive / New data » imprimé sur la sortie d'erreur.
+---  
 
-**`printf` et jamais `echo`.** Le comportement d'`echo` sur un contre-oblique ou sur un argument commençant par `-` n'est pas spécifié par POSIX, et `dash` interprète les échappements là où `bash` ne le fait pas.
+Utilisation des arguments de Tarsnap **`--quiet --no-print-stats` pour que le script tourne en mode silencieux sans l'affichage systèmatique du tableau de sortie d'execution.   
+La seule cause où le script est bavard c'est en cas d'erreur.
 
-**Options longues traduites à la main.** `getopts` POSIX ne connaît que les options d'un caractère. Le script réécrit les formes longues en formes courtes avant de lancer `getopts`, en acceptant un ou deux tirets.
+Utilisation de **`printf` et non de la commande `echo`:   
+** Le comportement d'`echo` sur un contre-oblique ou sur un argument commençant par `-` peut varier d'un shell à l'autre, là où `printf` ne pose pas soucis**
+
+
+**Options longues traduites à la main.** `getopts` POSIX ne connaît que les options d'un caractère.    
+Le script réécrit les formes longues en formes courtes avant de lancer `getopts`, en acceptant un ou deux tirets.
 
 ## Limites connues
 
-**La rotation est ancrée sur `uname -n`.** Renommer la machine, ou passer du nom court au nom pleinement qualifié, fait sortir toutes les archives antérieures du motif testé. Elles deviennent immortelles et devront être purgées à la main ; `--orphans` vous les listera. Si vous prévoyez un renommage, videz d'abord, ou acceptez de garder l'historique.
+**La rotation étant ancrée sur `uname -n`** renommer la machine ou passer du nom court au nom pleinement qualifié, fait sortir toutes les archives antérieures du motif testé.    
+Elles deviennent immortelles et devront être purgées à la main ; `--orphans` vous les listera. Si vous prévoyez un renommage, videz d'abord, ou acceptez de garder l'historique.
 
-**Le script est spécifique à Debian.** `dpkg` et `apt` figurent parmi les binaires obligatoires, et les appels à `date` reposent sur les extensions GNU `-d` et `%-d`. Ailleurs, il refusera de démarrer tant que le bloc de configuration et l'inventaire des paquets n'auront pas été adaptés. Le shell est POSIX, les utilitaires ne le sont pas, et c'est assumé.
+**Le script est spécifique aux distributions Debian-like.** `dpkg` et `apt` figurent parmi les binaires obligatoires, et les appels à `date` reposent sur les extensions GNU `-d` et `%-d`.   
+Ailleurs, il refusera de démarrer tant que le bloc de configuration et l'inventaire des paquets n'auront pas été adaptés. Le shell est POSIX, les utilitaires ne le sont pas.
 
-**Le code de sortie 2 de Tarsnap n'est pas distingué.** Tarsnap l'emploie pour signaler une erreur survenue alors que l'état côté serveur avait déjà été modifié. `set -e` le traite comme n'importe quelle autre erreur.
+**Le code de sortie 2 de Tarsnap n'est pas distingué :** Tarsnap l'emploie pour signaler une erreur survenue alors que l'état côté serveur avait déjà été modifié.   
+Le `set -e` le traite comme n'importe quelle autre erreur.
 
 ## Restaurer
 
-Une sauvegarde qu'on n'a jamais restaurée n'est pas une sauvegarde. Prenez l'habitude de vérifier, par exemple une fois par trimestre :
+Une sauvegarde qu'on n'a jamais restaurée n'est pas une sauvegarde :)
+
+Prenez l'habitude de vérifier, par exemple une fois par trimestre :
 
 ```sh
-tarsnap --list-archives                       # choisir l'archive
-tarsnap -tv -f hostname-AAAA-MM-JJ_HH-MM-SS   # inspecter son contenu
-mkdir /tmp/restore && cd /tmp/restore
-tarsnap -x -f hostname-AAAA-MM-JJ_HH-MM-SS etc/fstab
+tarsnap --list-archives                                # choisir une archive dans la liste
+tarsnap -tv -f hostname-AAAA-MM-JJ_HH-MM-SS            # inspecter son contenu
+mkdir /tmp/restore && cd /tmp/restore                  # créer un répertoire temporaire pour effecture la restauration
+tarsnap -x -f hostname-AAAA-MM-JJ_HH-MM-SS etc/fstab   # restauration du fichier `/etc/fstab` du snapshot dans le répertoire courant 
 ```
 
-Tarsnap retire le `/` de tête des noms d'entrée, les chemins à extraire sont donc relatifs : `etc/fstab` et non `/etc/fstab`.
+**Tarsnap retire le `/` de tête des noms d'entrée, (comme `bsdtar`) les chemins à extraire sont donc relatifs : `etc/fstab` et non `/etc/fstab`.**   
+Le fichier restauré sera donc situé dans `/tmp/restore/etc/fstab` il n'écrasera **JAMAIS** l'original !
 
 ## License
 
-[![CC0](https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/cc-zero.svg)](https://creativecommons.org/publicdomain/zero/1.0/) [![WTFPL](http://www.wtfpl.net/wp-content/uploads/2012/12/wtfpl-badge-1.png)](http://www.wtfpl.net/)
+[![CC0](https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/cc-zero.svg)](https://creativecommons.org/publicdomain/zero/1.0/)    [![WTFPL](http://www.wtfpl.net/wp-content/uploads/2012/12/wtfpl-badge-1.png)](http://www.wtfpl.net/)
 
 `CC0 1.0 Universal` -- Public Domain -- [LICENSE](LICENSE).
-
 `WTFPL` -- Do What The Fuck You Want To Public License, version 2 -- [LICENSE-WTFPL](LICENSE-WTFPL).
 
 
